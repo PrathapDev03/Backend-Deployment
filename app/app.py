@@ -22,7 +22,7 @@ with app.app_context():
 @app.route("/")
 def home():
     return jsonify({
-        "message": "Smart Office Management API Running"
+        "message": "Smart Office Management API Version 2"
     })
 
 
