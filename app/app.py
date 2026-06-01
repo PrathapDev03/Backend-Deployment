@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify
-from models import db, Employee
+from faker import Faker
+from models import db, Employee, Contact, Todo
 from config import Config
+
+fake = Faker()
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -10,12 +13,18 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
+
 @app.route("/")
 def home():
-    return jsonify({"message": "Smart Office Backend Running"})
+    return jsonify({
+        "message": "Smart Office Backend Running"
+    })
 
 
-# CREATE Employee
+# ==========================
+# EMPLOYEE CRUD
+# ==========================
+
 @app.route("/employee", methods=["POST"])
 def create_employee():
     data = request.json
@@ -33,21 +42,18 @@ def create_employee():
     return jsonify({"message": "Employee created"}), 201
 
 
-# GET All Employees
 @app.route("/employees", methods=["GET"])
 def get_employees():
     employees = Employee.query.all()
     return jsonify([emp.to_dict() for emp in employees])
 
 
-# GET Single Employee
 @app.route("/employee/<int:id>", methods=["GET"])
 def get_employee(id):
     employee = Employee.query.get_or_404(id)
     return jsonify(employee.to_dict())
 
 
-# UPDATE Employee
 @app.route("/employee/<int:id>", methods=["PUT"])
 def update_employee(id):
     employee = Employee.query.get_or_404(id)
@@ -63,7 +69,6 @@ def update_employee(id):
     return jsonify({"message": "Employee updated"})
 
 
-# DELETE Employee
 @app.route("/employee/<int:id>", methods=["DELETE"])
 def delete_employee(id):
     employee = Employee.query.get_or_404(id)
@@ -72,6 +77,96 @@ def delete_employee(id):
     db.session.commit()
 
     return jsonify({"message": "Employee deleted"})
+
+
+# ==========================
+# CONTACT CRUD
+# ==========================
+
+@app.route("/contact", methods=["POST"])
+def create_contact():
+    data = request.json
+
+    contact = Contact(
+        name=data["name"],
+        phone=data["phone"],
+        email=data["email"]
+    )
+
+    db.session.add(contact)
+    db.session.commit()
+
+    return jsonify({"message": "Contact created"}), 201
+
+
+@app.route("/contacts", methods=["GET"])
+def get_contacts():
+    contacts = Contact.query.all()
+    return jsonify([c.to_dict() for c in contacts])
+
+
+# ==========================
+# TODO CRUD
+# ==========================
+
+@app.route("/todo", methods=["POST"])
+def create_todo():
+    data = request.json
+
+    todo = Todo(
+        task=data["task"],
+        status=data["status"]
+    )
+
+    db.session.add(todo)
+    db.session.commit()
+
+    return jsonify({"message": "Todo created"}), 201
+
+
+@app.route("/todos", methods=["GET"])
+def get_todos():
+    todos = Todo.query.all()
+    return jsonify([t.to_dict() for t in todos])
+
+
+# ==========================
+# AI DATA GENERATOR
+# ==========================
+
+@app.route("/generate-data", methods=["POST"])
+def generate_data():
+
+    employee = Employee(
+        name=fake.name(),
+        email=fake.email(),
+        department=fake.job(),
+        phone=fake.phone_number()
+    )
+
+    contact = Contact(
+        name=fake.name(),
+        phone=fake.phone_number(),
+        email=fake.email()
+    )
+
+    todo = Todo(
+        task=f"Complete {fake.job()} task",
+        status="Pending"
+    )
+
+    db.session.add(employee)
+    db.session.add(contact)
+    db.session.add(todo)
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "AI Generated Data Created",
+        "employee": employee.to_dict(),
+        "contact": contact.to_dict(),
+        "todo": todo.to_dict()
+    })
 
 
 if __name__ == "__main__":
