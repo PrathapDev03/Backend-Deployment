@@ -1,8 +1,8 @@
 import os
 
 class Config:
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "sqlite:///office.db"
+    SQLALCHEMY_DATABASE_URI = (
+        "mysql+pymysql://officeadmin:Office@123@localhost/office_db"
     )
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
