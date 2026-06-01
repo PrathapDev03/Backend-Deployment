@@ -76,30 +76,11 @@ def update_employee(id):
 
     data = request.get_json()
 
-    employee.name = data.get(
-        "name",
-        employee.name
-    )
-
-    employee.email = data.get(
-        "email",
-        employee.email
-    )
-
-    employee.department = data.get(
-        "department",
-        employee.department
-    )
-
-    employee.designation = data.get(
-        "designation",
-        employee.designation
-    )
-
-    employee.salary = data.get(
-        "salary",
-        employee.salary
-    )
+    employee.name = data.get("name", employee.name)
+    employee.email = data.get("email", employee.email)
+    employee.department = data.get("department", employee.department)
+    employee.designation = data.get("designation", employee.designation)
+    employee.salary = data.get("salary", employee.salary)
 
     db.session.commit()
 
@@ -195,7 +176,7 @@ def generate_data():
 
     employee = Employee(
         name=fake.name(),
-        email=fake.email(),
+        email=fake.unique.email(),
         department="DevOps",
         designation="DevOps Engineer",
         salary=500000
@@ -212,11 +193,19 @@ def generate_data():
         status="Pending"
     )
 
-    db.session.add(employee)
-    db.session.add(contact)
-    db.session.add(todo)
+    try:
+        db.session.add(employee)
+        db.session.add(contact)
+        db.session.add(todo)
 
-    db.session.commit()
+        db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+
+        return jsonify({
+            "error": str(e)
+        }), 500
 
     return jsonify({
         "message": "AI Data Generated Successfully",
@@ -234,5 +223,5 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=5000,
-        debug=False 
+        debug=False
     )
