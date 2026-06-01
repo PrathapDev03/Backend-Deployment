@@ -1,56 +1,36 @@
 pipeline {
-    agent any
+agent any
 
-    stages {
+```
+stages {
 
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
+    stage('Checkout') {
+        steps {
+            checkout scm
         }
+    }
 
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t smart-office-backend -f docker/Dockerfile .'
-            }
-        }
- 
-        stage('Remove Old Container') {
-            steps {
+    stage('Deploy To Backend EC2') {
+        steps {
+            sshagent([18.136.77.86]) {
                 sh '''
-                docker rm -f smart-office-container || true
-                '''
-            }
-        }
-
-        stage('Run Container') {
-            steps {
-                sh '''
-                docker run -d \
-                --name smart-office-container \
-                -p 5000:5000 \
-                smart-office-backend
-                '''
-            }
-        }
-
-        stage('Health Check') {
-            steps {
-                sh '''
-                sleep 15
-                curl http://localhost:5000
+                ssh -o StrictHostKeyChecking=no ubuntu@18.136.77.86 \
+                "bash ~/deployments/deploy.sh"
                 '''
             }
         }
     }
+}
 
-    post {
-        success {
-            echo 'Deployment Successful'
-        }
-
-        failure {
-            echo 'Deployment Failed'
-        }
+post {
+    success {
+        echo 'Deployment Successful'
     }
+
+    failure {
+        echo 'Deployment Failed'
+    }
+}
+```
+
 }
