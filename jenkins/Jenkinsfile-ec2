@@ -1,36 +1,28 @@
 pipeline {
-agent any
+    agent any
 
-```
-stages {
-
-    stage('Checkout') {
-        steps {
-            checkout scm
-        }
+    triggers {
+        githubPush()
     }
 
-    stage('Deploy To Backend EC2') {
-        steps {
-            sshagent([18.136.77.86]) {
+    stages {
+
+        stage('Deploy Backend') {
+
+            steps {
+
                 sh '''
-                ssh -o StrictHostKeyChecking=no ubuntu@18.136.77.86 \
-                "bash ~/deployments/deploy.sh"
+                ssh -o StrictHostKeyChecking=no ubuntu@13.228.39.122 "
+                cd /opt/Backend-Deployment
+
+                git pull origin main
+
+                sudo systemctl restart backend
+
+                sudo systemctl status backend --no-pager
+                "
                 '''
             }
         }
     }
-}
-
-post {
-    success {
-        echo 'Deployment Successful'
-    }
-
-    failure {
-        echo 'Deployment Failed'
-    }
-}
-```
-
 }
