@@ -6,7 +6,7 @@ pipeline {
         ACCOUNT_ID = '379113716280'
         REPOSITORY = 'office-backend'
         CLUSTER = 'office-cluster'
-        SERVICE = 'office-backend-service'
+        SERVICE = 'office-backend-task-service-tcm4c0zl'
     }
 
     stages {
