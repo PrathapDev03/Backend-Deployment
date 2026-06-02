@@ -11,9 +11,9 @@ db.init_app(app)
 
 fake = Faker()
 
-with app.app_context():
+with app.app_context(): 
     db.create_all()
-
+ 
 
 # --------------------------------------------------
 # HOME
@@ -22,7 +22,7 @@ with app.app_context():
 @app.route("/")
 def home():
     return jsonify({
-        "message": "Smart Office Management API Version 5.0" 
+        "message": "Smart Office Management API Version 6" 
     })
 
 
