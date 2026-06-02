@@ -1,55 +1,52 @@
 pipeline {
-agent any
+    agent any
 
-```
-environment {
-    PATH = "/home/ubuntu/.local/bin:$PATH"
-    AWS_DEFAULT_REGION = "ap-southeast-1"
-}
+    environment {
+        PATH = "/home/ubuntu/.local/bin:$PATH"
+        AWS_DEFAULT_REGION = "ap-southeast-1"
+    }
 
-stages {
+    stages {
 
-    stage('Checkout') {
-        steps {
-            git branch: 'main',
-            url: 'https://github.com/PrathapDev03/Backend-Deployment.git'
+        stage('Checkout') {
+            steps {
+                git branch: 'elasticbeanstalk-rds ',
+                url: 'https://github.com/PrathapDev03/Backend-Deployment.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                python3 -m pip install -r requirements.txt --break-system-packages
+                '''
+            }
+        }
+
+        stage('Verify EB CLI') {
+            steps {
+                sh '''
+                eb --version
+                '''
+            }
+        }
+
+        stage('Deploy To Elastic Beanstalk') {
+            steps {
+                sh '''
+                eb deploy backend-deployment-ebs-env
+                '''
+            }
         }
     }
 
-    stage('Install Dependencies') {
-        steps {
-            sh '''
-            python3 -m pip install -r requirements.txt --break-system-packages
-            '''
+    post {
+        success {
+            echo 'Deployment Successful'
+        }
+
+        failure {
+            echo 'Deployment Failed'
         }
     }
-
-    stage('Verify EB CLI') {
-        steps {
-            sh '''
-            eb --version
-            '''
-        }
-    }
-
-    stage('Deploy To Elastic Beanstalk') {
-        steps {
-            sh '''
-            eb deploy backend-deployment-ebs-env
-            '''
-        }
-    }
-}
-
-post {
-    success {
-        echo 'Deployment Successful'
-    }
-
-    failure {
-        echo 'Deployment Failed'
-    }
-}
-```
-
 }
