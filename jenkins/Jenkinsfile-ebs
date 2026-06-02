@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        PATH = "/home/ubuntu/.local/bin:$PATH"
         AWS_DEFAULT_REGION = "ap-southeast-1"
     }
 
@@ -10,8 +9,8 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'elasticbeanstalk-rds ',
-                url: 'https://github.com/PrathapDev03/Backend-Deployment.git'
+                git branch: 'elasticbeanstalk-rds',
+                    url: 'https://github.com/PrathapDev03/Backend-Deployment.git'
             }
         }
 
@@ -26,7 +25,7 @@ pipeline {
         stage('Verify EB CLI') {
             steps {
                 sh '''
-                eb --version
+                /var/lib/jenkins/.local/bin/eb --version
                 '''
             }
         }
@@ -34,7 +33,7 @@ pipeline {
         stage('Deploy To Elastic Beanstalk') {
             steps {
                 sh '''
-                eb deploy backend-deployment-ebs-env
+                /var/lib/jenkins/.local/bin/eb deploy backend-deployment-ebs-env
                 '''
             }
         }
