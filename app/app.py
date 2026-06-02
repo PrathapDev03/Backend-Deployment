@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
 from faker import Faker
 
-from models import db, Employee, Contact, Todo
-from config import Config
+from app.models import db, Employee, Contact, Todo
+from app.config import Config
 
 app = Flask(__name__)
 app.config.from_object(Config)
