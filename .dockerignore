@@ -1,0 +1,5 @@
+venv
+.git
+.elasticbeanstalk
+__pycache__
+*.pyc

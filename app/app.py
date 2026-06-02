@@ -1,223 +1,124 @@
 from flask import Flask, request, jsonify
-from faker import Faker
-
-from models import db, Employee, Contact, Todo
-from config import Config
+import boto3
+import uuid
 
 app = Flask(__name__)
-app.config.from_object(Config)
 
-db.init_app(app)
+dynamodb = boto3.resource(
+    "dynamodb",
+    region_name="ap-southeast-1"
+)
 
-fake = Faker()
+table = dynamodb.Table("employees")
 
-with app.app_context():
-    db.create_all()
-
-
-# --------------------------------------------------
-# HOME
-# --------------------------------------------------
 
 @app.route("/")
 def home():
     return jsonify({
-        "message": "Smart Office Management API Version 5.0" 
+        "message": "ECS + DynamoDB Backend Running"
     })
 
 
-# --------------------------------------------------
-# EMPLOYEE CRUD
-# --------------------------------------------------
-
+# CREATE EMPLOYEE
 @app.route("/employees", methods=["POST"])
 def create_employee():
 
     data = request.get_json()
 
-    employee = Employee(
-        name=data["name"],
-        email=data["email"],
-        department=data["department"],
-        designation=data["designation"],
-        salary=data["salary"]
-    )
+    employee = {
+        "employee_id": str(uuid.uuid4()),
+        "name": data["name"],
+        "email": data["email"],
+        "department": data["department"],
+        "designation": data["designation"],
+        "salary": str(data["salary"])
+    }
 
-    db.session.add(employee)
-    db.session.commit()
+    table.put_item(Item=employee)
 
     return jsonify({
-        "message": "Employee Created Successfully"
+        "message": "Employee Created Successfully",
+        "employee": employee
     }), 201
 
 
+# GET ALL EMPLOYEES
 @app.route("/employees", methods=["GET"])
 def get_employees():
 
-    employees = Employee.query.all()
+    response = table.scan()
 
-    return jsonify(
-        [emp.to_dict() for emp in employees]
+    return jsonify(response.get("Items", []))
+
+
+# GET EMPLOYEE BY ID
+@app.route("/employees/<employee_id>", methods=["GET"])
+def get_employee(employee_id):
+
+    response = table.get_item(
+        Key={
+            "employee_id": employee_id
+        }
     )
 
+    employee = response.get("Item")
 
-@app.route("/employees/<int:id>", methods=["GET"])
-def get_employee(id):
+    if not employee:
+        return jsonify({
+            "message": "Employee Not Found"
+        }), 404
 
-    employee = Employee.query.get_or_404(id)
-
-    return jsonify(employee.to_dict())
+    return jsonify(employee)
 
 
-@app.route("/employees/<int:id>", methods=["PUT"])
-def update_employee(id):
-
-    employee = Employee.query.get_or_404(id)
+# UPDATE EMPLOYEE
+@app.route("/employees/<employee_id>", methods=["PUT"])
+def update_employee(employee_id):
 
     data = request.get_json()
 
-    employee.name = data.get("name", employee.name)
-    employee.email = data.get("email", employee.email)
-    employee.department = data.get("department", employee.department)
-    employee.designation = data.get("designation", employee.designation)
-    employee.salary = data.get("salary", employee.salary)
-
-    db.session.commit()
+    table.update_item(
+        Key={
+            "employee_id": employee_id
+        },
+        UpdateExpression="""
+            SET #n=:n,
+                email=:e,
+                department=:d,
+                designation=:des,
+                salary=:s
+        """,
+        ExpressionAttributeNames={
+            "#n": "name"
+        },
+        ExpressionAttributeValues={
+            ":n": data["name"],
+            ":e": data["email"],
+            ":d": data["department"],
+            ":des": data["designation"],
+            ":s": str(data["salary"])
+        }
+    )
 
     return jsonify({
         "message": "Employee Updated Successfully"
     })
 
 
-@app.route("/employees/<int:id>", methods=["DELETE"])
-def delete_employee(id):
+# DELETE EMPLOYEE
+@app.route("/employees/<employee_id>", methods=["DELETE"])
+def delete_employee(employee_id):
 
-    employee = Employee.query.get_or_404(id)
-
-    db.session.delete(employee)
-    db.session.commit()
+    table.delete_item(
+        Key={
+            "employee_id": employee_id
+        }
+    )
 
     return jsonify({
         "message": "Employee Deleted Successfully"
     })
 
-
-# --------------------------------------------------
-# CONTACT CRUD
-# --------------------------------------------------
-
-@app.route("/contacts", methods=["POST"])
-def create_contact():
-
-    data = request.get_json()
-
-    contact = Contact(
-        name=data["name"],
-        phone=data["phone"],
-        email=data["email"]
-    )
-
-    db.session.add(contact)
-    db.session.commit()
-
-    return jsonify({
-        "message": "Contact Created Successfully"
-    }), 201
-
-
-@app.route("/contacts", methods=["GET"])
-def get_contacts():
-
-    contacts = Contact.query.all()
-
-    return jsonify(
-        [c.to_dict() for c in contacts]
-    )
-
-
-# --------------------------------------------------
-# TODO CRUD
-# --------------------------------------------------
-
-@app.route("/todos", methods=["POST"])
-def create_todo():
-
-    data = request.get_json()
-
-    todo = Todo(
-        task=data["task"],
-        status=data["status"]
-    )
-
-    db.session.add(todo)
-    db.session.commit()
-
-    return jsonify({
-        "message": "Todo Created Successfully"
-    }), 201
-
-
-@app.route("/todos", methods=["GET"])
-def get_todos():
-
-    todos = Todo.query.all()
-
-    return jsonify(
-        [t.to_dict() for t in todos]
-    )
-
-
-# --------------------------------------------------
-# AI GENERATED DATA
-# --------------------------------------------------
-
-@app.route("/generate-data", methods=["POST"])
-def generate_data():
-
-    employee = Employee(
-        name=fake.name(),
-        email=fake.unique.email(),
-        department="DevOps",
-        designation="DevOps Engineer",
-        salary=500000
-    )
-
-    contact = Contact(
-        name=fake.name(),
-        phone=fake.phone_number(),
-        email=fake.email()
-    )
-
-    todo = Todo(
-        task="Deploy Flask Application",
-        status="Pending"
-    )
-
-    try:
-        db.session.add(employee)
-        db.session.add(contact)
-        db.session.add(todo)
-
-        db.session.commit()
-
-    except Exception as e:
-        db.session.rollback()
-
-        return jsonify({
-            "error": str(e)
-        }), 500
-
-    return jsonify({
-        "message": "AI Data Generated Successfully",
-        "employee": employee.to_dict(),
-        "contact": contact.to_dict(),
-        "todo": todo.to_dict()
-    })
-
-
-# --------------------------------------------------
-# MAIN
-# --------------------------------------------------
 
 if __name__ == "__main__":
     app.run(
