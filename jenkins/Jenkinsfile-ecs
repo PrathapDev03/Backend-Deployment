@@ -17,7 +17,7 @@ pipeline {
                 docker build -t office-backend:v1 -f docker/Dockerfile .
                 '''
             }
-        }
+        } 
 
         stage('Login to ECR') {
             steps {
