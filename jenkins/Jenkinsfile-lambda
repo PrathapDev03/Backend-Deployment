@@ -1,0 +1,46 @@
+pipeline {
+
+    agent any
+
+    environment {
+
+        AWS_REGION = 'ap-southeast-1'
+        FUNCTION_NAME = 'employee-api'
+
+    }
+
+    stages {
+
+        stage('Git Checkout') {
+
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Package Lambda') {
+
+            steps {
+
+                sh '''
+                cd lambda
+
+                zip -r lambda.zip .
+                '''
+            }
+        }
+
+        stage('Deploy Lambda') {
+
+            steps {
+
+                sh '''
+                aws lambda update-function-code \
+                --function-name $FUNCTION_NAME \
+                --zip-file fileb://lambda/lambda.zip \
+                --region $AWS_REGION
+                '''
+            }
+        }
+    }
+}
