@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: office-config
+
+data:
+  DB_HOST: office-db-01.cbuoa8kc81xo.ap-southeast-1.rds.amazonaws.com
+  DB_NAME: office_db
+  DB_USER: officeadmin

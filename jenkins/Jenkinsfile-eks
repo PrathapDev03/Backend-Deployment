@@ -1,0 +1,117 @@
+pipeline {
+
+    agent any
+
+    environment {
+
+        AWS_REGION = "ap-southeast-1"
+
+        ACCOUNT_ID = "379113716280"
+
+        ECR_REPO = "office-backend"
+
+        CLUSTER_NAME = "office-eks-cluster"
+    }
+
+    stages {
+
+        stage('Git Checkout') {
+
+            steps {
+
+                checkout scm
+
+            }
+
+        }
+
+        stage('Build Docker Image') {
+
+            steps {
+
+                sh '''
+                docker build -t office-backend:v1 -f eks/Dockerfile .
+                '''
+            }
+
+        }
+
+        stage('Login To ECR') {
+
+            steps {
+
+                sh '''
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS --password-stdin \
+                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                '''
+            }
+
+        }
+
+        stage('Tag Image') {
+
+            steps {
+
+                sh '''
+                docker tag office-backend:v1 \
+                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest
+                '''
+            }
+
+        }
+
+        stage('Push Image') {
+
+            steps {
+
+                sh '''
+                docker push \
+                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest
+                '''
+            }
+
+        }
+
+        stage('Update Kube Config') {
+
+            steps {
+
+                sh '''
+                aws eks update-kubeconfig \
+                --region $AWS_REGION \
+                --name $CLUSTER_NAME
+                '''
+            }
+
+        }
+
+        stage('Deploy To EKS') {
+
+            steps {
+
+                sh '''
+                kubectl apply -f eks/configmap.yaml
+
+                kubectl apply -f eks/secret.yaml
+
+                kubectl apply -f eks/deployment.yaml
+
+                kubectl apply -f eks/service.yaml
+                '''
+            }
+
+        }
+
+        stage('Restart Deployment') {
+
+            steps {
+
+                sh '''
+                kubectl rollout restart deployment office-backend
+                '''
+            }
+
+        }
+    }
+}

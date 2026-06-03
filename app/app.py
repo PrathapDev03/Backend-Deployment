@@ -1,128 +1,102 @@
-from flask import Flask, request, jsonify
-import boto3
-import uuid
+from flask_sqlalchemy import SQLAlchemy
 
-app = Flask(__name__)
-
-dynamodb = boto3.resource(
-    "dynamodb",
-    region_name="ap-southeast-1"
-)
-
-table = dynamodb.Table("employees")
+db = SQLAlchemy()
 
 
-@app.route("/")
-def home():
-    return jsonify({
-        "message": "ECS + DynamoDB Backend Running"
-    })
+class Employee(db.Model):
 
+    __tablename__ = "employees"
 
-# CREATE EMPLOYEE
-@app.route("/employees", methods=["POST"])
-def create_employee():
+    employee_id = db.Column(db.Integer, primary_key=True)
 
-    data = request.get_json()
+    name = db.Column(db.String(100), nullable=False)
 
-    employee = {
-        "employee_id": str(uuid.uuid4()),
-        "name": data["name"],
-        "email": data["email"],
-        "department": data["department"],
-        "designation": data["designation"],
-        "salary": str(data["salary"])
-    }
+    email = db.Column(
+        db.String(100),
+        unique=True,
+        nullable=False
+    )
 
-    table.put_item(Item=employee)
+    department = db.Column(
+        db.String(100),
+        nullable=False
+    )
 
-    return jsonify({
-        "message": "Employee Created Successfully",
-        "employee": employee
-    }), 201
+    designation = db.Column(
+        db.String(100),
+        nullable=False
+    )
 
+    salary = db.Column(
+        db.Integer,
+        nullable=False
+    )
 
-# GET ALL EMPLOYEES
-@app.route("/employees", methods=["GET"])
-def get_employees():
-
-    response = table.scan()
-
-    return jsonify(response.get("Items", []))
-
-
-# GET EMPLOYEE BY ID
-@app.route("/employees/<employee_id>", methods=["GET"])
-def get_employee(employee_id):
-
-    response = table.get_item(
-        Key={
-            "employee_id": employee_id
+    def to_dict(self):
+        return {
+            "employee_id": self.employee_id,
+            "name": self.name,
+            "email": self.email,
+            "department": self.department,
+            "designation": self.designation,
+            "salary": self.salary
         }
+
+
+class Contact(db.Model):
+
+    __tablename__ = "contacts"
+
+    contact_id = db.Column(
+        db.Integer,
+        primary_key=True
     )
 
-    employee = response.get("Item")
+    name = db.Column(
+        db.String(100),
+        nullable=False
+    )
 
-    if not employee:
-        return jsonify({
-            "message": "Employee Not Found"
-        }), 404
+    phone = db.Column(
+        db.String(20),
+        nullable=False
+    )
 
-    return jsonify(employee)
+    email = db.Column(
+        db.String(100)
+    )
 
-
-# UPDATE EMPLOYEE
-@app.route("/employees/<employee_id>", methods=["PUT"])
-def update_employee(employee_id):
-
-    data = request.get_json()
-
-    table.update_item(
-        Key={
-            "employee_id": employee_id
-        },
-        UpdateExpression="""
-            SET #n=:n,
-                email=:e,
-                department=:d,
-                designation=:des,
-                salary=:s
-        """,
-        ExpressionAttributeNames={
-            "#n": "name"
-        },
-        ExpressionAttributeValues={
-            ":n": data["name"],
-            ":e": data["email"],
-            ":d": data["department"],
-            ":des": data["designation"],
-            ":s": str(data["salary"])
+    def to_dict(self):
+        return {
+            "contact_id": self.contact_id,
+            "name": self.name,
+            "phone": self.phone,
+            "email": self.email
         }
+
+
+class Todo(db.Model):
+
+    __tablename__ = "todos"
+
+    todo_id = db.Column(
+        db.Integer,
+        primary_key=True
     )
 
-    return jsonify({
-        "message": "Employee Updated Successfully"
-    })
+    task = db.Column(
+        db.String(255),
+        nullable=False
+    )
 
+    status = db.Column(
+        db.String(50),
+        nullable=False
+    )
 
-# DELETE EMPLOYEE
-@app.route("/employees/<employee_id>", methods=["DELETE"])
-def delete_employee(employee_id):
-
-    table.delete_item(
-        Key={
-            "employee_id": employee_id
+    def to_dict(self):
+        return {
+            "todo_id": self.todo_id,
+            "task": self.task,
+            "status": self.status
         }
-    )
-
-    return jsonify({
-        "message": "Employee Deleted Successfully"
-    })
-
-
-if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=False
-    )
